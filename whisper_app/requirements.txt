@@ -1,0 +1,4 @@
+Flask
+openai-whisper @ git+https://github.com/openai/whisper.git
+torch
+ffmpeg-python

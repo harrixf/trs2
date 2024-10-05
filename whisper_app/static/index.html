@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HarryAPP!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            max-height: 90vh; /* Limitar la altura al 90% de la ventana */
+            overflow: auto;  /* Hacer el contenedor desplazable si el contenido es muy largo */
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #fafafa;
+            border-radius: 4px;
+            text-align: left;
+            white-space: pre-wrap;
+            max-height: 60vh; /* Limitar la altura de la transcripción */
+            overflow-y: auto; /* Hacer la transcripción desplazable si es muy larga */
+            display: block; /* Asegurar que sea un bloque visible */
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HarryAPP!</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="audioFile" accept="audio/*" required>
+            <br>
+            <button type="submit">Transcribir Audio</button>
+        </form>
+        <div id="status" class="result hidden"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const statusDiv = document.getElementById('status');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('audioFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Por favor, selecciona un archivo de audio.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = 'Subiendo archivo...';
+
+                // Hacer la solicitud de transcripción
+                const response = await fetch('/transcribe', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.status === 202) {
+                    statusDiv.textContent = 'Transcripción en progreso...';
+
+                    // Iniciar el polling para consultar el estado de la transcripción
+                    const transcriptionId = data.transcription_id;
+                    pollTranscriptionStatus(transcriptionId);
+                } else {
+                    throw new Error(`Error en la solicitud de transcripción. Código de estado: ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.textContent = 'Hubo un problema: ' + error.message;
+                console.error(error);
+            }
+        });
+
+        // Función para realizar polling
+        async function pollTranscriptionStatus(transcriptionId) {
+            try {
+                const response = await fetch(`/transcription_status/${transcriptionId}`);
+                const data = await response.json();
+
+                if (response.status === 200) {
+                    // Mostrar la transcripción cuando esté lista
+                    statusDiv.textContent = 'Transcripción completada:\n' + data.transcription;
+                } else {
+                    // Si la transcripción aún está en progreso, repetir el polling
+                    setTimeout(() => pollTranscriptionStatus(transcriptionId), 5000);
+                }
+            } catch (error) {
+                statusDiv.textContent = 'Hubo un problema al obtener el estado de la transcripción.';
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
