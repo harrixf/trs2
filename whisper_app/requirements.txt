@@ -1,4 +1,14 @@
 Flask
-openai-whisper @ git+https://github.com/openai/whisper.git
+whisperx
 torch
 ffmpeg-python
+audioread
+tensorboard
+librosa
+transformers
+tqdm
+numpy
+soundfile
+scipy
+pyannote.audio
+pyctcdecode
